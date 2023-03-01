@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MVVM简单实现</title>
+  <script src="./mvvvm/compile.js"></script>
+  <script src="./mvvvm/MVVM.js"></script>
+
+</head>
+
+<body>
+  <div id="app">
+    <input type="text" v-model="message">
+    <div>{{message}}</div>
+    <input type="text" v-model="gender.male">
+
+    <ul>
+      <li><span></span></li>
+      <li>
+        <div>{{gender.fale}}</div>
+      </li>
+      <li></li>
+      <li></li>
+      <li></li>
+    </ul>
+  </div>
+  <script>
+    let mvvm = new MVVM({
+      el: '#app',
+      data: {
+        message: 'hello, MVVM',
+        gender: {
+          fale: '男',
+          male: '女'
+        }
+      }
+    })
+
+  </script>
+</body>
+
+</html>
