@@ -81,7 +81,6 @@ CompileUtil = {//文本处理
   },
   text(node, vm, expr) {
     let updateFn = this.updater['textUpdater'];
-    console.log(expr);
     updateFn && updateFn(node, this.getVal(vm, expr))
   },
   model(node, vm, expr) {//输入框处理
