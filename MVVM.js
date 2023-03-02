@@ -1,3 +1,33 @@
+//MVVM类
+class MVVM {
+  constructor(options) {
+    this.$el = options.el;
+    this.$data = options.data;
+    //对模板进行编译
+    if (this.$el) {
+      // 数据劫持 就是把对象的所有属性， 改成get方法和set发那个发
+      new Observer(this.$data)
+      this.proxyData(this.$data);
+      // 用数据和 元素进行编译
+      new Compile(this.$el, this);
+
+    }
+  }
+  proxyData(data) {
+    Object.keys(data).forEach(key => {
+      Object.defineProperty(this, key, {
+        get() {
+          return data(key)
+        },
+        set(newValue) {
+          data[key] = newValue;
+        }
+      })
+    })
+  }
+}
+
+// Compile类
 class Compile {
   constructor(el, vm) {
     this.el = this.isElementNode(el) ? el : document.querySelector(el);
@@ -71,7 +101,7 @@ class Compile {
   }
 }
 
-
+// Compile编译中用到的一些方法 存放在对象中。
 CompileUtil = {
   //文本处理,对文本情况是gender.male 的，获取到male的value值，并返回
   getVal(vm, expr) {
@@ -126,6 +156,103 @@ CompileUtil = {
     },
     modelUpdater(node, value) {
       node.value = value
+    }
+  }
+}
+
+// Observer类
+class Observer {
+  constructor(data) {
+    this.observe(data);
+  }
+  observe(data) {
+    // 要对这个data数据将原有的属性改成set和get的形式
+    if (!data || typeof data !== 'object') {
+      // 如果数据不存在，或者不是对象数据，就什么都不操作
+      return;
+    }
+    // 是对象类型，就要一一劫持
+    Object.keys(data).forEach(key => {
+      // console.log(data);
+      //定义劫持的响应式
+      this.defineReactive(data, key, data[key]);//形参分别是：对象，key关键字，key对应的value值
+      // 还需要进行深度劫持，就是将对象中的对象添加上set和get方法，这里可以直接进行递归
+      this.observe(data[key])
+
+    })
+
+  }
+  // 定义劫持的响应式
+  defineReactive(obj, key, value) {
+    let that = this;
+    // 创建订阅
+    let dep = new Dep();//每个变化的数据，都会对应一个数组，这个数组是存放所有更新的操作
+
+    // 在获取某个值的适合，想弹窗
+    Object.defineProperty(obj, key, {
+      configurable: true,//指定通过循环可以拿到
+      enumerable: true,//指定可以删除
+      get() {
+        Dep.target && dep.addSub(Dep.target)
+        return value;
+      },
+      set(newValue) {
+        if (newValue != value) {
+          that.observe(newValue)//这里是对newvalue也进行盘算是否是对象，并进行劫持
+          value = newValue;
+          dep.notify();//通知所有人  数据更新了
+        }
+      }
+    })
+  }
+
+
+
+}
+
+// Dep类
+class Dep {
+  constructor() {
+    // 订阅的数组
+    this.subs = []
+  }
+  // 添加订阅的方法
+  addSub(watcher) {
+    this.subs.push(watcher)
+  }
+  notify() {
+    this.subs.forEach(watcher => watcher.updata())
+  }
+}
+
+// Watcher类
+class Watcher {
+  // 观察者的目的，就是给需要变化的那个元素添加一个观察者
+  // 当数据变化后执行对应的方法
+  constructor(vm, expr, cd) {//vm是实例，expr是监听的key，cd就是返回函数
+    this.vm = vm;
+    this.expr = expr;
+    this.cd = cd;
+    // 先获取一个老的值
+    this.value = this.get();
+  }
+  getVal(vm, expr) {
+    return expr.split('.').reduce((prev, next) => {
+      return prev[next]
+    }, vm.$data);
+  }
+  get() {
+    Dep.target = this;
+    let value = this.getVal(this.vm, this.expr);
+    Dep.target = null;
+    return value
+  }
+  // 对外暴露的方法
+  updata() {
+    let newValue = this.getVal(this.vm, this.expr);
+    let oldValue = this.value;
+    if (newValue != oldValue) {
+      this.cd(newValue);//调用watch的callback
     }
   }
 }
